@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sort"
 	"github.com/aristanetworks/goeapi"
+	"github.com/xuri/excelize/v2"
 )
 
 // Conn structure holds the connection information for an EOS device
@@ -120,7 +121,6 @@ func main() {
 			// Créer une chaîne de caractères pour chaque voisin
 			// entry := fmt.Sprintf("%s %s %s %s", neighbor.Machine, neighbor.Port, neighbor.NeighborDevice, neighbor.NeighborPort)
 			
-			// Ajout -----
 			// Créer une clé canonique en triant les éléments
 			// Clé 1: dans l'ordre original
 			key1 := fmt.Sprintf("%s %s %s %s", neighbor.Machine, neighbor.Port, neighbor.NeighborDevice, neighbor.NeighborPort)
@@ -137,18 +137,40 @@ func main() {
 				uniqueNeighbors[canonicalKey] = true
 				fusionAllNeighbors = append(fusionAllNeighbors, key1)
 			}
-
-
 			// fusionAllNeighbors = append(fusionAllNeighbors, entry)
 		}
 	}
 
 
+	// Crée un nouveau fichier Excel
+    f := excelize.NewFile()
 
+    // Définit le nom de la feuille de calcul
+    sheetName := "Sheet1"
 
-	// Afficher les résultats fusionnés
-	for _, entry := range fusionAllNeighbors {
-		fmt.Println(entry)
+	// Definition des titres de colonnes
+	headers := []string{"Device 1", "Interface 1", "Device 2", "Interface 2"}
+
+	// Insère les en-têtes de colonne
+	for j, header := range headers {
+		cellRef, _ := excelize.CoordinatesToCellName(j+1, 1) // Ligne 1 pour les en-têtes
+		f.SetCellValue(sheetName, cellRef, header)
 	}
+
+    // Remplit la feuille de calcul avec les données
+    for i, row := range fusionAllNeighbors {
+		// Les donnees de fusioAllNeigbors sont des string, il faut remettre "Spine3 Ethernet4 Leaf2b Ethernet6" dans un tableau
+		elements := strings.Fields(row)
+		table := []string{
+			elements[0], elements[1], elements[2], elements[3],
+		}
+		// Mise en place dans les cellules
+        for j, cell := range table {
+            cellRef, _ := excelize.CoordinatesToCellName(j+1, i+2)  // i+2 pour commencer à la ligne 2
+            f.SetCellValue(sheetName, cellRef, cell)
+        }
+	}
+	f.SaveAs("example.xlsx")
+
 
 }
