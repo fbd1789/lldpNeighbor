@@ -5,8 +5,11 @@ import (
 	"sync"
 	"strings"
 	"sort"
+	"os"
+	"strconv"
 	"github.com/aristanetworks/goeapi"
 	"github.com/xuri/excelize/v2"
+	"gopkg.in/ini.v1"
 )
 
 // Conn structure holds the connection information for an EOS device
@@ -46,8 +49,31 @@ func (c *Conn) Connect() (*goeapi.Node, error) {
 
 
 func main() {
+	// Read the config.ini file
+	inidata, err := ini.Load("config.ini")
+	if err != nil {
+	   fmt.Printf("Fail to read file: %v", err)
+	   os.Exit(1)
+	 }
+	UserName := inidata.Section("global").Key("username").String()
+	Password := inidata.Section("global").Key("password").String()
+	Transport := inidata.Section("transport").Key("transport").String()
+	// Port := inidata.Section("transport").Key("port").String()
+	Port, err := strconv.Atoi( inidata.Section("transport").Key("port").String())
+    if err != nil {
+        fmt.Printf("Erreur lors de la conversion en entier: %v", err)
+    }
+	Hosts := inidata.Section("global").Key("devices").String()
+
+	// Séparer la chaîne en un tableau de chaînes, en utilisant la virgule comme délimiteur
+    hosts := strings.Split(Hosts, ",")
+	// Supprimer les espaces autour de chaque élément
+	for i := range hosts {
+		hosts[i] = strings.TrimSpace(hosts[i])
+	}
 	// Liste des hôtes à interroger
-	hosts := []string{"Spine1", "Spine2","Spine3", "Leaf1a","Leaf1b", "Leaf2a","Leaf2b"}
+	// hosts := []string{"Spine1", "Spine2","Spine3", "Leaf1a","Leaf1b", "Leaf2a","Leaf2b"}
+	
 
 	// Liste pour stocker les résultats de chaque hôte (thread-safe)
 	var allNeighbors []ShLldpNeighbor
@@ -63,11 +89,11 @@ func main() {
 		fmt.Printf("Connexion à l'hôte %s...\n", host)
 
 		d := Conn{
-			Transport: "https",
+			Transport: Transport,
 			Host:      host,
-			Username:  "admin",
-			Password:  "admin",
-			Port:      443,
+			Username:  UserName,
+			Password:  Password,
+			Port:      Port,
 		}
 
 		Connect, err := d.Connect()
